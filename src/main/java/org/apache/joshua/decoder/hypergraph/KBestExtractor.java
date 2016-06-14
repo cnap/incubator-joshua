@@ -47,6 +47,7 @@ import org.apache.joshua.decoder.segment_file.Token;
 import org.apache.joshua.util.FormatUtils;
 import org.apache.joshua.decoder.StructuredTranslation;
 import org.apache.joshua.decoder.StructuredTranslationFactory;
+import org.apache.joshua.decoder.JoshuaTER;
 
 /**
  * <p>This class implements lazy k-best extraction on a hyper-graph.</p>
@@ -98,6 +99,8 @@ public class KBestExtractor {
   private final String outputFormat;
   private final HashMap<HGNode, VirtualNode> virtualNodesTable = new HashMap<HGNode, VirtualNode>();
 
+  private final JoshuaTER terScorer;
+
   // static final String rootSym = JoshuaConfiguration.goal_symbol;
   static final String rootSym = "ROOT";
   static final int rootID = Vocabulary.id(rootSym);
@@ -140,6 +143,9 @@ public class KBestExtractor {
     this.weights = weights;
     this.defaultSide = (isMonolingual ? Side.SOURCE : Side.TARGET);
     this.sentence = sentence;
+
+    terScorer =  new JoshuaTER();
+    terScorer.setSource(sentence.rawSource());
 
     if (joshuaConfiguration.rescoreForest) {
       references = new BLEU.References(sentence.references());
@@ -260,7 +266,9 @@ public class KBestExtractor {
       if (outputFormat.contains("%a")) {
         outputString = outputString.replace("%a",  derivationState.getWordAlignment());
       }
-      
+      if (outputFormat.contains("%T")) {
+	  outputString = outputString.replace("%T", String.format("%.3f",terScorer.calculate(hypothesis)));
+      }
     }
 
     return outputString;
